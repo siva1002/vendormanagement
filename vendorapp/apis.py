@@ -4,12 +4,14 @@ from .serializer import (PurchaseSerializer, VendorSerializer, VendorCreationSer
                          VendorUpdateSerializer, VendorPerfomanceSerializer, LoginSerializer)
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from django.db.models import Q, F, Count, Avg, ExpressionWrapper,FloatField,Sum,Func
+from rest_framework.permissions import AllowAny,IsAuthenticated
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
-from functools import reduce
-from datetime import timedelta
+from django.shortcuts import get_object_or_404
+
+from django.utils import timezone
+from datetime import datetime
+
 
 class LoginView(CreateAPIView):
     serializer_class = LoginSerializer
@@ -30,7 +32,7 @@ class LoginView(CreateAPIView):
 
 class PurchaseAPI(ListCreateAPIView):
     serializer_class = PurchaseSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         try:
@@ -50,7 +52,7 @@ class PurchaseAPI(ListCreateAPIView):
 
 class PurchaseUpdateAPI(RetrieveUpdateDestroyAPIView):
     serializer_class = PurchaseSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     queryset = PurchaseOrder.objects.all()
 
     def put(self, request, *args, **kwargs):
@@ -67,7 +69,7 @@ class PurchaseUpdateAPI(RetrieveUpdateDestroyAPIView):
 
 class VendorsGetUpdateAPI(RetrieveUpdateDestroyAPIView):
     serializer_class = VendorUpdateSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     queryset = Vendor.objects.all()
 
     def get(self, request, *args, **kwargs):
@@ -110,25 +112,30 @@ class VendorsCreate(ListCreateAPIView):
             return Response({"data": serializer.data}, status=status.HTTP_201_CREATED)
         return Response({"error": serializer.errors}, status=status.HTTP_206_PARTIAL_CONTENT)
 
+class AcknowledgePurchaseOrder(ListAPIView):
+    serializer_class=PurchaseSerializer
+    permission_classes=[IsAuthenticated]
+    queryset = PurchaseOrder.objects.all()
+    def get(self, request, *args, **kwargs):
+        pk=kwargs.pop('pk', None)
+        if pk:
+            po=get_object_or_404(PurchaseOrder, pk=pk)
+            if not po.acknowledgment_date:
+                timzone_datetime = timezone.make_aware(datetime.now())
+                po.acknowledgment_date=timzone_datetime
+                po.save()
+                serializer=PurchaseSerializer(po)
+            return Response({"message":"Purchase Order Acknowledged Already" }, status=status.HTTP_200_OK)
+        
+        
+
+
 
 class VendorPerformance(ListAPIView):
     serializer_class = VendorPerfomanceSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     queryset = Vendor.objects.all()
-    def add(self,a, b): 
-        return a + (b[0]-b[1])  
     def get(self, request, *args, **kwargs):
-        # Get vendor details along with overall completed po and average of quality rating
-        vendor = Vendor.objects.prefetch_related('purchaseorder').annotate(
-            deliveryrate=Count('purchaseorder', filter=Q(purchaseorder__status__icontains='COM',
-                               purchaseorder__delivery_date__lte=F("purchaseorder__delivery_date"))),
-            quality_rating_avg=Avg('purchaseorder__quality_rating'),
-            fullfilment_rate=ExpressionWrapper(Count('purchaseorder', filter=Q(purchaseorder__status__icontains='COM'))*1.0/Count('purchaseorder'),output_field=FloatField()),
-            ).get(pk=kwargs['pk'])
-        # li=vendor.purchaseorder.values_list("acknowledgment_date",'issue_date')
-        # avgresponsetime=reduce(self.add,li,timedelta(0))/len(li)
-        # vendor.__setattr__("average_response_time",avgresponsetime)           
-        
-
+        vendor=get_object_or_404(Vendor,pk=kwargs['pk'])  
         serialized = VendorPerfomanceSerializer(vendor)
-        return Response({"data": serialized.data}, status=status.HTTP_200_OK)
+        return Response({"data":serialized.data }, status=status.HTTP_200_OK)

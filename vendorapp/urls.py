@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.urls import path
 from .views import(vendorapp)
-from .apis import (PurchaseAPI,VendorsGetUpdateAPI,VendorsCreate,PurchaseUpdateAPI,VendorPerformance,LoginView)
+from .apis import (PurchaseAPI,VendorsGetUpdateAPI,VendorsCreate,
+                   PurchaseUpdateAPI,VendorPerformance,LoginView,
+                   AcknowledgePurchaseOrder)
 
 urlpatterns = [
     path('', vendorapp,name="home"),
@@ -11,5 +13,6 @@ urlpatterns = [
     path("vendors/<int:pk>/performance",VendorPerformance.as_view()),
     path('purchase_order/',PurchaseAPI.as_view(),name='deliveryrate'),
     path('purchase_order/<int:pk>',PurchaseUpdateAPI.as_view(),name='deliveryrate'),
+    path('purchase_order/<int:pk>/acknowledge',AcknowledgePurchaseOrder.as_view())
     
 ]
