@@ -6,7 +6,7 @@ from .apis import (PurchaseAPI,VendorsGetUpdateAPI,VendorsCreate,
                    AcknowledgePurchaseOrder)
 
 urlpatterns = [
-    path('', vendorapp,name="home"),
+    # path('', vendorapp,name="home"),
     path('login/',LoginView.as_view(),name="login"),
     path('vendors/',VendorsCreate.as_view(),name='vendors'),
     path('vendors/<int:pk>/',VendorsGetUpdateAPI.as_view(),name='vendorsgetupdte'),
