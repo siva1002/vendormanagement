@@ -11,12 +11,11 @@ def performancehandler(sender,instance, **kwargs):
     vendor=instance.vendor
     vendor_po = PurchaseOrder.objects.prefetch_related('vendor').filter(vendor=vendor).annotate(diff=F("acknowledgment_date")-F("issue_date"))
     
-    on_time_delivery_rate=vendor_po.filter(status__icontains="COMP",delivery_date__lte=F("delivery_date")).count()/vendor_po.count()
+    on_time_delivery_rate=vendor_po.filter(status__icontains="COMP",delivery_date__lte=F("delivered_date")).count()/vendor_po.count()
     rating_and_responsetime=vendor_po.aggregate(avg_response_time=Avg("diff"),quality_rating_avg=Avg('quality_rating',filter=Q(status__iexact="COMP")))
     fullfilmentrate=vendor_po.filter(status__icontains="COMP").count()/vendor_po.count()*100
     hp=HistoricalPerformance(vendor=vendor,on_time_delivery_rate=vendor.on_time_delivery_rate,quality_rating_avg=vendor.quality_rate,average_response_time=vendor.average_response_time,fulfillment_rate=vendor.fulfillment_rate)
    
-    print(rating_and_responsetime,on_time_delivery_rate)
    
     vendor.average_response_time=rating_and_responsetime['avg_response_time'].total_seconds()  if rating_and_responsetime['avg_response_time'] else 0
     vendor.fulfillment_rate=fullfilmentrate

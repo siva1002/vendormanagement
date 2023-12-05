@@ -76,6 +76,7 @@ class PurchaseOrder(models.Model):
         Vendor, related_name="purchaseorder", on_delete=models.CASCADE,null=True)
     order_date = models.DateTimeField(auto_now=True)
     delivery_date= models.DateTimeField(null=True)
+    delivered_date= models.DateTimeField(null=True)
     items = models.JSONField(null=True,default=dict)
     quantity = models.IntegerField(default=0)
     status = models.CharField(choices=choices, max_length=50,default='pending')
